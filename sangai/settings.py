@@ -17,7 +17,6 @@ pymysql.install_as_MySQLdb()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -88,12 +87,13 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',  # Use MySQL backend
         'NAME': 'snagdb',                # The name of your MySQL database
         'USER': 'root',                # The MySQL username
-        'PASSWORD': '5584',        # The MySQL password
-        'HOST': 'localhost',                   # The host of the MySQL server (use 'localhost' if it's local)
-        'PORT': '3306',                        # The MySQL port (default is 3306)
+        'PASSWORD': 'root',        # The MySQL password
+        # The host of the MySQL server (use 'localhost' if it's local)
+        'HOST': 'localhost',
+        # The MySQL port (default is 3306)
+        'PORT': '3306',
     }
 }
-
 
 
 # Password validation
