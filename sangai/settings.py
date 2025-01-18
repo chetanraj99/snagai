@@ -40,11 +40,15 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'core',
     "rest_framework",
+    'corsheaders',
+    'import_export',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # CORS middleware
+
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -87,7 +91,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',  # Use MySQL backend
         'NAME': 'snagdb',                # The name of your MySQL database
         'USER': 'root',                # The MySQL username
-        'PASSWORD': 'root',        # The MySQL password
+        'PASSWORD': '5584',        # The MySQL password
         # The host of the MySQL server (use 'localhost' if it's local)
         'HOST': 'localhost',
         # The MySQL port (default is 3306)
@@ -136,3 +140,4 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+CORS_ALLOW_ALL_ORIGINS = True

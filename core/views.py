@@ -5,7 +5,8 @@ from core.serializers import ReportSerializer, DescriptionSerializer
 from core.models import Report, Description
 from rest_framework.decorators import api_view
 from sentence_transformers import SentenceTransformer, util  # type: ignore
-
+import faiss
+import numpy as np
 
 # Create your views here.
 # model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -15,38 +16,6 @@ model = SentenceTransformer('all-MiniLM-L6-v2')
 class ReportViewSet(viewsets.ModelViewSet):
     serializer_class = ReportSerializer
     queryset = Report.objects.all()
-
-
-# class DescriptionViewSet(viewsets.ModelViewSet):
-#     serializer_class = DescriptionSerializer
-#     queryset = Description.objects.all()
-
-#     def create(self, request, *args, **kwargs):
-#         # Access request data
-#         data = request.data
-
-#         # Custom validation or logic before saving
-#         if 'required_field' in data:
-#             return Response({'error': 'required_field is missing.'}, status=status.HTTP_400_BAD_REQUEST)
-
-#         # Use serializer to validate and save data
-#         serializer = self.get_serializer(data=data)
-#         serializer.is_valid(raise_exception=True)
-
-#         # Perform additional actions if needed
-#         self.perform_create(serializer)
-
-#         # Customize the response
-#         headers = self.get_success_headers(serializer.data)
-#         return Response(
-#             {'message': 'Object created successfully!', 'data': serializer.data},
-#             status=status.HTTP_201_CREATED,
-#             headers=headers
-#         )
-
-#     def perform_create(self, serializer):
-#         # Save the object to the database
-#         serializer.save()
 
 
 @api_view(['GET', 'POST', 'PUT', "PATCH", "DELETE",])
@@ -62,26 +31,45 @@ def description_api(request, pk=None):
         return Response(serializer.data)
 
     if request.method == "POST":
+    # Fetch database data
+        reports = list(Report.objects.values_list('description', flat=True))
+        if not reports:
+            return Response({"error": "No reports found in the database."}, status=status.HTTP_404_NOT_FOUND)
 
-        reports = Report.objects.all().values()
-        print(reports)
-        descriptions = []
-        # serializer = DescriptionSerializer(data=request.data)
-        # Lightweight BERT variant
+        # Validate user input
+        des = request.data.get('description')
+        if not des:
+            return Response({"error": "Description is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        for report in reports:
-            descriptions.append(report['description'])
-        print(descriptions)
-        # description_embeddings = model.encode(descriptions)
+        # Encode query and use precomputed vectors for similarity search
+        try:
+            # Precompute and load vector embeddings (only once, outside this API logic)
+            # Example: FAISS, Milvus, Pinecone, etc.
+            description_embeddings = model.encode(reports)  # Replace with precomputed embeddings if applicable
+            index = faiss.IndexFlatL2(description_embeddings.shape[1])  # Replace with your vector index
+            index.add(np.array(description_embeddings))  # Ensure this is done only once
 
-        print(request.data)
-        # query = report.data
-        # print(query)
+            # Encode query embedding
+            query_embedding = model.encode([des])
 
-        # if serializer.is_valid():
-        #     serializer.save()
-        #     return Response({"msg": "data saved into database"}, status=status.HTTP_201_CREATED)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+            # Perform vector similarity search
+            N = 5  # Number of top matches
+            distances, indices = index.search(np.array(query_embedding), N)
+
+            # Prepare matches
+            matches = [
+                {
+                    "description": reports[idx],
+                    "similarity_score": 1 - distances[0][i]  # Adjusted score for cosine similarity
+                }
+                for i, idx in enumerate(indices[0])
+            ]
+
+            return Response({"matches": matches}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
     # Full update
     if request.method == "PUT":
@@ -111,41 +99,3 @@ def description_api(request, pk=None):
         stu.delete()
         return Response({"msg": "data deleted"})
 
-
-'''
-from rest_framework.response import Response
-from rest_framework import status, viewsets
-from .models import YourModel
-from .serializers import YourModelSerializer
-
-class YourModelViewSet(viewsets.ModelViewSet):
-    queryset = YourModel.objects.all()
-    serializer_class = YourModelSerializer
-
-    def create(self, request, *args, **kwargs):
-        # Access request data
-        data = request.data
-
-        # Custom validation or logic before saving
-        if 'required_field' not in data:
-            return Response({'error': 'required_field is missing.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Use serializer to validate and save data
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-
-        # Perform additional actions if needed
-        self.perform_create(serializer)
-
-        # Customize the response
-        headers = self.get_success_headers(serializer.data)
-        return Response(
-            {'message': 'Object created successfully!', 'data': serializer.data},
-            status=status.HTTP_201_CREATED,
-            headers=headers
-        )
-
-    def perform_create(self, serializer):
-        # Save the object to the database
-        serializer.save()
-'''
